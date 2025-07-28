@@ -12,13 +12,15 @@ except ImportError:
     pyheif = None
 from io import BytesIO
 
-class MediaSorter:
+class Sorter:
 
-    def __init__(self, src_dir, dest_dir, delete_aae=False, rename=False, logfile=False):
+    def __init__(self, src_dir, dest_dir, copy=True, months=False, logfile=False):
+        self.mlist = ["01_Januar", "02_Februar", "03_Maerz", "04_April", "05_Mai", "06_Juni", "07_Juli", 
+                      "08_August", "09_September", "10_Oktober", "11_November", "12_Dezember"]
         self.src_dir = Path(src_dir)
         self.dest_dir = Path(dest_dir)
-        self.delete_aae = delete_aae
-        self.rename = rename
+        self.copy = copy
+        self.rename_months = months
         self.logfile = logfile
         self.supported_exts = ['.jpg', '.jpeg', '.heic', '.mov', '.mp4', '.avi', '.mkv']
 
@@ -31,7 +33,10 @@ class MediaSorter:
                     date = self.get_file_date(str(src_path))
                     if date:
                         year = str(date.year)
-                        month = f"{date.month:02d}"
+                        if self.rename_months:
+                            month = self.mlist[date.month - 1]
+                        else:
+                            month = f"{date.month:02d}"
                     else:
                         year = "unknown"
                         month = "unknown"
@@ -47,10 +52,12 @@ class MediaSorter:
                             if not target_path.exists():
                                 break
                             i += 1
-                    if not self.dry_run:
+                    if self.copy:
                         shutil.copy2(src_path, target_path)
-                    if self.verbose:
-                        print(f"Copied {src_path} -> {target_path}")
+                    else:
+                        shutil.move(src_path, target_path)
+                    if self.logfile:
+                        self.__append_log(f"Copied {src_path} -> {target_path}")
 
     # Determines the date for a file based on its extension and available metadata
     def get_file_date(self, filepath):
@@ -75,7 +82,7 @@ class MediaSorter:
             return None
         
     # Extracts the original date from EXIF metadata of JPEG images
-    def __get_exif_date(filepath):
+    def __get_exif_date(self, filepath):
         try:
             image = Image.open(filepath)  # Open image file
             exif_data = image._getexif()  # Get EXIF metadata
@@ -89,7 +96,7 @@ class MediaSorter:
         return None
 
     # Extracts the original date from HEIC images using pyheif and PIL
-    def __get_heic_date(filepath):
+    def __get_heic_date(self, filepath):
         if pyheif is None:
             return None  # pyheif not available
         try:
@@ -108,52 +115,17 @@ class MediaSorter:
         return None
 
     # Gets the file modification time for video files
-    def __get_video_date(filepath):
+    def __get_video_date(self, filepath):
         try:
             ts = os.path.getmtime(filepath)  # Get last modification time
             return datetime.fromtimestamp(ts)  # Convert to datetime object
         except Exception:
             return None
-
-# Main function to sort and copy pictures/videos into folders by year and month
-def sort_pictures(src_dir, dest_dir):
-    supported_exts = ['.jpg', '.jpeg', '.heic', '.mov', '.mp4', '.avi', '.mkv']  # Supported file types
-    src_dir = Path(src_dir)
-    dest_dir = Path(dest_dir)
-    # Walk through all files in the source directory
-    for root, _, files in os.walk(src_dir):
-        for file in files:
-            ext = os.path.splitext(file)[1].lower()  # Get file extension
-            if ext in supported_exts:
-                src_path = Path(root) / file  # Full source file path
-                date = get_file_date(str(src_path))  # Get date for sorting
-                if date:
-                    year = str(date.year)  # Extract year
-                    month = f"{date.month:02d}"  # Extract month (zero-padded)
-                else:
-                    year = "unknown"
-                    month = "unknown"
-                # Create target directory based on year and month
-                target_dir = dest_dir / year / month
-                target_dir.mkdir(parents=True, exist_ok=True)  # Ensure directory exists
-                target_path = target_dir / file  # Destination file path
-                # Avoid overwriting files by renaming if necessary
-                if target_path.exists():
-                    base, ext = os.path.splitext(file)
-                    i = 1
-                    while True:
-                        new_name = f"{base}_{i}{ext}"  # Append counter to filename
-                        target_path = target_dir / new_name
-                        if not target_path.exists():
-                            break
-                        i += 1
-                # Copy the file to the target directory
-                shutil.copy2(src_path, target_path)  # Copy file with metadata
-                print(f"Copied {src_path} -> {target_path}")
-
-# Entry point: checks arguments and calls sort_pictures
-if __name__ == "__main__":
-    if len(sys.argv) != 3:
-        print("Usage: python test.py <source_dir> <destination_dir>")
-    else:
-        sort_pictures(sys.argv[1], sys.argv[2])
+        
+    def __append_log(self, line):
+        try:
+            with open('log.txt', 'a') as f:
+                f.write(line + '\n')
+        except Exception as e:
+            if self.verbose:
+                print(f"Error appending to log.txt: {e}")
