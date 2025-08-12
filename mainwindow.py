@@ -81,6 +81,6 @@ class MainWindow(tk.Tk):
     def on_cancel(self):
         self.destroy()
 
-if __name__ == "__main__":
-    app = MainWindow()
-    app.mainloop()
+# if __name__ == "__main__":
+#     app = MainWindow()
+#     app.mainloop()
