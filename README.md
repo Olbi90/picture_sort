@@ -4,6 +4,7 @@ picture_sort is a simple tool that let you sort your media. No fancy stuff, just
 At the moment the following filetypes are supported:
 - .jpg
 - .jpeg
+- .png
 - .heic
 - .mov
 - .mp4
