@@ -62,6 +62,9 @@ class Sorter:
                         shutil.move(src_path, target_path)
                         if self.logfile:
                             self.__append_log(f"Moved {src_path} -> {target_path}")
+                else:
+                    src_path = Path(root) / file
+                    self.__append_notsupported(f"Skipped unsupported file: {src_path}")
     # def sort_media(self):
     #     for root, _, files in os.walk(self.src_dir):
     #         for file in files:
@@ -166,6 +169,14 @@ class Sorter:
     def __append_log(self, line):
         try:
             with open('log.txt', 'a') as f:
+                f.write(line + '\n')
+        except Exception as e:
+            if self.verbose:
+                print(f"Error appending to log.txt: {e}")
+
+    def __append_notsupported(self, line):
+        try:
+            with open('error.txt', 'a') as f:
                 f.write(line + '\n')
         except Exception as e:
             if self.verbose:
