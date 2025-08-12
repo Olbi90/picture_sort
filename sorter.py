@@ -22,8 +22,8 @@ class Sorter:
         self.copy = copy
         self.rename_months = months
         self.logfile = logfile
-        self.supported_exts = ['.jpg', '.jpeg', '.heic', '.mov', '.mp4', '.avi', '.mkv']
-
+        self.supported_exts = ['.jpg', '.jpeg', '.png', '.heic', '.mov', '.mp4', '.avi', '.mkv']
+        
     def sort_media(self):
         for root, _, files in os.walk(self.src_dir):
             for file in files:
@@ -37,10 +37,12 @@ class Sorter:
                             month = self.mlist[date.month - 1]
                         else:
                             month = f"{date.month:02d}"
+                        day = f"{date.day:02d}"
                     else:
                         year = "unknown"
                         month = "unknown"
-                    target_dir = self.dest_dir / year / month
+                        day = "unknown"
+                    target_dir = self.dest_dir / year / month / day
                     target_dir.mkdir(parents=True, exist_ok=True)
                     target_path = target_dir / file
                     if target_path.exists():
@@ -54,15 +56,54 @@ class Sorter:
                             i += 1
                     if self.copy:
                         shutil.copy2(src_path, target_path)
+                        if self.logfile:
+                            self.__append_log(f"Copied {src_path} -> {target_path}")
                     else:
                         shutil.move(src_path, target_path)
-                    if self.logfile:
-                        self.__append_log(f"Copied {src_path} -> {target_path}")
+                        if self.logfile:
+                            self.__append_log(f"Moved {src_path} -> {target_path}")
+    # def sort_media(self):
+    #     for root, _, files in os.walk(self.src_dir):
+    #         for file in files:
+    #             ext = os.path.splitext(file)[1].lower()
+    #             if ext in self.supported_exts:
+    #                 src_path = Path(root) / file
+    #                 date = self.get_file_date(str(src_path))
+    #                 if date:
+    #                     year = str(date.year)
+    #                     if self.rename_months:
+    #                         month = self.mlist[date.month - 1]
+    #                     else:
+    #                         month = f"{date.month:02d}"
+    #                 else:
+    #                     year = "unknown"
+    #                     month = "unknown"
+    #                 target_dir = self.dest_dir / year / month
+    #                 target_dir.mkdir(parents=True, exist_ok=True)
+    #                 target_path = target_dir / file
+    #                 if target_path.exists():
+    #                     base, ext = os.path.splitext(file)
+    #                     i = 1
+    #                     while True:
+    #                         new_name = f"{base}_{i}{ext}"
+    #                         target_path = target_dir / new_name
+    #                         if not target_path.exists():
+    #                             break
+    #                         i += 1
+    #                 if self.copy:
+    #                     shutil.copy2(src_path, target_path)
+    #                     if self.logfile:
+    #                         self.__append_log(f"Copied {src_path} -> {target_path}")
+    #                 else:
+    #                     shutil.move(src_path, target_path)
+    #                     if self.logfile:
+    #                         self.__append_log(f"Moved {src_path} -> {target_path}")
+                    
 
     # Determines the date for a file based on its extension and available metadata
     def get_file_date(self, filepath):
         ext = filepath.lower().split('.')[-1]  # Get file extension
-        if ext in ['jpg', 'jpeg']:
+        if ext in ['jpg', 'jpeg', 'png']:
             date = self.__get_exif_date(filepath)  # Try to get EXIF date
             if date:
                 return date
