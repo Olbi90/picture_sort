@@ -17,10 +17,10 @@ This file serves as a log for any issues that occurred during the operation. It 
 1. List of unsupported or failed files:
 Every file that could not be moved or copied will be listed with its full path.
 
-2. Total number of unsupported files
+2. Total number of unsupported files:
 An absolute count of how many files could not be processed.
 
-3. Operation summary
+3. Operation summary:
 At the end of the file, a comparison is provided:
 - Total number of files processed
 - Number of files successfully moved/copied
