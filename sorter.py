@@ -1,5 +1,4 @@
 import shutil
-import sys
 import os
 
 from datetime import datetime
@@ -12,8 +11,11 @@ except ImportError:
     pyheif = None
 from io import BytesIO
 
+'''
+This class is actually for sorting the media files
+'''
 class Sorter:
-
+    # Constructor
     def __init__(self, src_dir, dest_dir, copy=True, months=False, logfile=False):
         self.mlist = ["01_Januar", "02_Februar", "03_Maerz", "04_April", "05_Mai", "06_Juni", "07_Juli", 
                       "08_August", "09_September", "10_Oktober", "11_November", "12_Dezember"]
@@ -23,11 +25,19 @@ class Sorter:
         self.rename_months = months
         self.logfile = logfile
         self.supported_exts = ['.jpg', '.jpeg', '.png', '.heic', '.mov', '.mp4', '.avi', '.mkv']
-        
+    
+    # sort function
     def sort_media(self):
+        # count not supoorted files
+        self.not_supported = 0
+
+        self.append_notsupported(f"--- Start: {self.src_dir} ---")
+        # Iterate through all files and subdirectories in source dir
         for root, _, files in os.walk(self.src_dir):
             for file in files:
+                # Exclude extension
                 ext = os.path.splitext(file)[1].lower()
+                # if file is supported
                 if ext in self.supported_exts:
                     src_path = Path(root) / file
                     date = self.get_file_date(str(src_path))
@@ -45,6 +55,7 @@ class Sorter:
                     target_dir = self.dest_dir / year / month / day
                     target_dir.mkdir(parents=True, exist_ok=True)
                     target_path = target_dir / file
+                    # if the file doubles, a number will be added
                     if target_path.exists():
                         base, ext = os.path.splitext(file)
                         i = 1
@@ -54,54 +65,32 @@ class Sorter:
                             if not target_path.exists():
                                 break
                             i += 1
+                    # copy path
                     if self.copy:
-                        shutil.copy2(src_path, target_path)
-                        if self.logfile:
-                            self.__append_log(f"Copied {src_path} -> {target_path}")
+                        try:
+                            shutil.copy2(src_path, target_path)
+                            if self.logfile:
+                                self.__append_log(f"Copied {src_path} -> {target_path}")
+                        except shutil.Error as e:
+                            self.append_notsupported(f"Error copying {src_path} to {target_path}: {e}")
+                    # move path
                     else:
-                        shutil.move(src_path, target_path)
-                        if self.logfile:
-                            self.__append_log(f"Moved {src_path} -> {target_path}")
+                        try:
+                            shutil.move(src_path, target_path)
+                            if self.logfile:
+                                self.__append_log(f"Moved {src_path} -> {target_path}")
+                        except shutil.Error as e:
+                            self.append_notsupported(f"Error moving {src_path} to {target_path}: {e}")
+                # file is not supported
                 else:
+                    self.not_supported += 1
+
                     src_path = Path(root) / file
-                    self.__append_notsupported(f"Skipped unsupported file: {src_path}")
-    # def sort_media(self):
-    #     for root, _, files in os.walk(self.src_dir):
-    #         for file in files:
-    #             ext = os.path.splitext(file)[1].lower()
-    #             if ext in self.supported_exts:
-    #                 src_path = Path(root) / file
-    #                 date = self.get_file_date(str(src_path))
-    #                 if date:
-    #                     year = str(date.year)
-    #                     if self.rename_months:
-    #                         month = self.mlist[date.month - 1]
-    #                     else:
-    #                         month = f"{date.month:02d}"
-    #                 else:
-    #                     year = "unknown"
-    #                     month = "unknown"
-    #                 target_dir = self.dest_dir / year / month
-    #                 target_dir.mkdir(parents=True, exist_ok=True)
-    #                 target_path = target_dir / file
-    #                 if target_path.exists():
-    #                     base, ext = os.path.splitext(file)
-    #                     i = 1
-    #                     while True:
-    #                         new_name = f"{base}_{i}{ext}"
-    #                         target_path = target_dir / new_name
-    #                         if not target_path.exists():
-    #                             break
-    #                         i += 1
-    #                 if self.copy:
-    #                     shutil.copy2(src_path, target_path)
-    #                     if self.logfile:
-    #                         self.__append_log(f"Copied {src_path} -> {target_path}")
-    #                 else:
-    #                     shutil.move(src_path, target_path)
-    #                     if self.logfile:
-    #                         self.__append_log(f"Moved {src_path} -> {target_path}")
-                    
+                    self.append_notsupported(f"Skipped unsupported file: {src_path}")
+        
+        # End of sort process            
+        self.append_notsupported(f"--- End: {self.src_dir} ---")
+        self.append_notsupported(f"--- Number of not supported Files: {self.not_supported} ---")
 
     # Determines the date for a file based on its extension and available metadata
     def get_file_date(self, filepath):
@@ -166,6 +155,7 @@ class Sorter:
         except Exception:
             return None
         
+    # append logfile
     def __append_log(self, line):
         try:
             with open('log.txt', 'a') as f:
@@ -174,7 +164,8 @@ class Sorter:
             if self.verbose:
                 print(f"Error appending to log.txt: {e}")
 
-    def __append_notsupported(self, line):
+    # append error file, wich will always be created
+    def append_notsupported(self, line):
         try:
             with open('error.txt', 'a') as f:
                 f.write(line + '\n')

@@ -11,6 +11,20 @@ At the moment the following filetypes are supported:
 - .avi
 - .mkv
 
+After each run, the program generates a file named *error.txt*.
+This file serves as a log for any issues that occurred during the operation. It contains:
+
+1. List of unsupported or failed files:
+Every file that could not be moved or copied will be listed with its full path.
+
+2. Total number of unsupported files
+An absolute count of how many files could not be processed.
+
+3. Operation summary
+At the end of the file, a comparison is provided:
+- Total number of files processed
+- Number of files successfully moved/copied
+
 > **Warning:**  
 > The author does not take any responsibility for damage or lost files. Please use this tool with caution.  
 > It is strongly recommended to always use **copy mode** instead of **move** to avoid accidental data loss.
